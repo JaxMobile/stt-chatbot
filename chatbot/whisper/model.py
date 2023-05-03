@@ -1,5 +1,5 @@
 import os
-from whisper_langex.ctranslate.utils import (
+from chatbot.whisper.ctranslate.utils import (
     model_converter as faster_whisper_model_converter,
 )
 
@@ -16,13 +16,13 @@ import environ
 logger = logging.getLogger(__name__)
 logger.info("Starting loading model: ")
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR,'env/.dev.env'))
 
 
 whisper_model_name= env('MODEL_NAME')
-model_base_dir = os.path.join("{}/whisper_langex/models".format(BASE_DIR))
+model_base_dir = os.path.join("{}/models".format(BASE_DIR))
 faster_whisper_model_path = os.path.join("{}/faster_whisper".format(model_base_dir), whisper_model_name)
 whisper_model_path = os.path.join("{}/whisper".format(model_base_dir), whisper_model_name)
 faster_whisper_model_converter(whisper_model_name, faster_whisper_model_path)

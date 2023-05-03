@@ -36,7 +36,7 @@ class EchoBot(slixmpp.ClientXMPP):
 
       self.add_event_handler("session_start", self.start)
 
-      self.register_plugin('AudioBotPlugin', module="extension.audio_bot.plugin")
+      self.register_plugin('AudioBotPlugin', module="chatbot.plugins.audio_bot.plugin")
       
     def oob_handler(self):
         print("OOB_handler detected")

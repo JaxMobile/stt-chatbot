@@ -13,13 +13,15 @@ from slixmpp.stanza import Iq, Message
 from slixmpp.plugins.xep_0066.stanza import OOB
 import requests
 import io 
-from whisper_langex.model import run_asr
+
 import urlextract
 import re
 from Bio import Align
 import functools
 
-from extension.audio_bot.stanza import AudioBot, AudioBotReq
+from chatbot.whisper.model import run_asr
+from chatbot.plugins.audio_bot.stanza import AudioBot, AudioBotReq
+import mimetypes
 
 
 
@@ -38,7 +40,7 @@ class AudioBotPlugin(BasePlugin):
         self.xmpp.register_handler(
             Callback('AudioBotRequest',
                      MatchXPath('{%s}message/{%s}%s' % (self.xmpp.default_ns, OOB.namespace, OOB.name)),
-                     self.__handleAudioBotRequest
+                     self.handleAudioBotRequest
                      ))
         
         register_stanza_plugin(Message, AudioBot)
@@ -56,31 +58,40 @@ class AudioBotPlugin(BasePlugin):
 
 
 
-    def __handleAudioBotRequest(self, message):
-      if not message["oob"]["url"]:
-        return self.audioFileNotExistResponse(self, message)
+    def handleAudioBotRequest(self, msg_stanza):
+      url = msg_stanza["oob"]["url"]
       
-      response = requests.get(message["oob"]["url"], verify=False)
+      # Validate
+      ## 1. If there is input 
+      msg_text =  self.extract_text(msg_stanza["body"]).strip()
+      if len(msg_text) <= 0:
+        return self.xmpp.send_message(mto=msg_stanza["from"], mbody="Please input your text sample")
+
+      ## 2. If the file sended is audio file
+      mime_type, _ = mimetypes.guess_type(url)
+      if not mime_type or not mime_type.startswith("audio/"):
+        return self.xmpp.send_message(mto=msg_stanza["from"], mbody="Sorry, this is not an audio file. I can not help you to make assessment")
+
+      self._makeAssessment(url, msg_text, msg_stanza)
+      
+      
+
+    def _makeAssessment(self, url, msg_text, msg_stanza):
+      response = requests.get(url, verify=False)
       audio_file = io.BytesIO(response.content)
 
       transcribe_result = run_asr(audio_file, "transcribe", "en", method = "openai-whisper", encode = True)
 
-      self.msg_text =  self.extract_text(message["body"])
-      self.heard_text = transcribe_result["text"]
+      heard_text = transcribe_result["text"]
 
-      filter_msg_text = self.filter_seperator(self.msg_text) # Filter origin text before matching
-      filter_heard_text = self.filter_seperator(self.heard_text)
+      filter_msg_text = self.filter_seperator(msg_text) # Filter origin text before matching
+      filter_heard_text = self.filter_seperator(heard_text)
 
       match_coordinates = self.first_matched_coordinates(filter_msg_text, filter_heard_text) # Find match coordinates between two string
       
       accuracy_list = self.get_pronunc_accuracy(match_coordinates, filter_msg_text, filter_heard_text) # Get accuracy of word tokens
 
-      self.send_pronunc_peformance(accuracy_list, message)
-
-
-    def audioFileNotExistResponse(self, message_stanza):
-      message = "You are not sending any audio file to be corrected"
-      self.xmpp.send_message(mto=message_stanza["from"], mbody=message)
+      self.send_pronunc_peformance(accuracy_list, msg_stanza)
 
 
     def cal_accuracy_per(self, accuracy_list):
