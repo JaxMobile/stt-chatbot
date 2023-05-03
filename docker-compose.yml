@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  lec-chatbot:
+    image: narutosimaha/lec-chatbot
+    command: ["python", "main.py", "-d"]
+    environment: 
+      - MODEL_NAME=tiny.en
+      - BOT_PASSWORD=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODc4NzIxMTYsImlhdCI6MTY3Nzg2NzMxNywidW5hbWUiOiJjaGF0Ym90In0.P9Tha-h3BoRi6rZq3HW2oVTErRg8CETezwZKjy3gquA
+      - BOT_JID=chatbot@localhost
+      - LANGEX_XMPP_HOSTNAME=localhost
+      - LANGEX_XMPP_PORT=5222
+    volumes:
+      - ./whisper_langex/models/faster_whisper:/usr/local/src/whisper_langex/models/faster_whisper
+      - ./whisper_langex/models/whisper:/usr/local/src/whisper_langex/models/whisper   
+

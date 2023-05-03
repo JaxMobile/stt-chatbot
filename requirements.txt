@@ -1,2 +1,11 @@
 slixmpp==1.8.3
 dnspython==2.3.0
+faster-whisper==0.4.1
+torch
+openai-whisper==20230124
+urlextract
+idna
+uritools
+platformdirs
+biopython==1.81
+django-environ==0.10.0

@@ -3,7 +3,17 @@ from getpass import getpass
 from argparse import ArgumentParser
 
 import slixmpp
+import environ
+import os
 
+env = environ.Env()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+environ.Env.read_env(os.path.join(BASE_DIR,'env/.dev.env'))
+
+BOT_PASSWORD = env('BOT_PASSWORD')
+BOT_JID = env('BOT_JID')
+LANGEX_XMPP_HOSTNAME = env('LANGEX_XMPP_HOSTNAME')
+LANGEX_XMPP_PORT = env('LANGEX_XMPP_PORT')
 
 
 class EchoBot(slixmpp.ClientXMPP):
@@ -22,12 +32,11 @@ class EchoBot(slixmpp.ClientXMPP):
       self.register_plugin('xep_0004') # Data Forms
       self.register_plugin('xep_0060') # PubSub
       self.register_plugin('xep_0199') # XMPP Ping
+      self.register_plugin('xep_0066')
 
       self.add_event_handler("session_start", self.start)
-      self.add_event_handler("message", self.message)
 
-
-      self.register_plugin('MediaProcessPlugin', module="extension.oob.oob")
+      self.register_plugin('AudioBotPlugin', module="extension.audio_bot.plugin")
       
     def oob_handler(self):
         print("OOB_handler detected")
@@ -36,9 +45,11 @@ class EchoBot(slixmpp.ClientXMPP):
         self.send_presence()
         await self.get_roster()
 
-    def message(self, msg):
-        if msg['type'] in ('chat', 'normal'):
-            msg.reply("Thanks for sending\n%(body)s" % msg).send()
+    # def message(self, msg):
+    #   if msg['type'] in ('chat', 'normal'):
+    #       msg.reply("Thanks for sending\n%(body)s" % msg).send()
+    
+
 
 
 if __name__ == '__main__':
@@ -66,20 +77,18 @@ if __name__ == '__main__':
                         format='%(levelname)-8s %(message)s')
 
     if args.jid is None:
-        args.jid = "chatbot@localhost"
+        args.jid = BOT_JID
     if args.password is None:
-        args.password = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODc4NzIxMTYsImlhdCI6MTY3Nzg2NzMxNywidW5hbWUiOiJjaGF0Ym90In0.P9Tha-h3BoRi6rZq3HW2oVTErRg8CETezwZKjy3gquA"
+        args.password = BOT_PASSWORD
 
     plugin_config = {
       'feature_mechanisms': {
         'unencrypted_plain': True,
       }
     }
+
     xmpp = EchoBot(args.jid, args.password, 'PLAIN', plugin_config)
-
-
     
-
     # Connect to the XMPP server and start processing XMPP stanzas.
-    xmpp.connect(address=["localhost",5222], force_starttls= False,disable_starttls=True)
+    xmpp.connect(address=[LANGEX_XMPP_HOSTNAME,LANGEX_XMPP_PORT], force_starttls= False, disable_starttls=True)
     xmpp.process()
